@@ -1,7 +1,7 @@
 package gee
 
 import "strings"
-
+// 实现路由模糊匹配的功能
 type node struct {
 	pattern 	string		// 待匹配路由 完整路径
 	part 		string		// 当前这一层的路由中的一部分

@@ -15,6 +15,8 @@ type Context struct {
 	Path	string
 	Method	string
 	StatusCode	int
+	// 查找一部分的路由
+	Params map[string]string
 }
 
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
@@ -25,7 +27,7 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 		Method: req.Method,
 	}
 }
-
+// 可以获取？之后的参数
 func (c *Context) PostForm(key string) string{
 	return c.Req.FormValue(key)
 }
@@ -65,4 +67,9 @@ func (c *Context) HTML(code int, html string) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	c.Writer.Write([]byte(html))
+}
+
+func (c *Context) Param(key string) string {
+	value, _ := c.Params[key]
+	return value
 }
