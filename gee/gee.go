@@ -2,6 +2,7 @@ package gee
 
 import (
 	"net/http"
+	"strings"
 )
 
 type HandlerFunc func(c *Context)
@@ -16,13 +17,19 @@ type RouterGroup struct{
 type Engine struct {
 	*RouterGroup
 	router *router		// 实现ServeHTTP的接口
-	group []*RouterGroup	// 存放所有的组
+	groups []*RouterGroup	// 存放所有的组
 }
+
+// 将中间件添加到组中
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, middlewares...)
+}
+
 // 创建一个新的Engine
 func New() *Engine {
 	engine := &Engine{router: newRouter()}
 	engine.RouterGroup = &RouterGroup{engine: engine}
-	engine.group = []*RouterGroup{engine.RouterGroup}
+	engine.groups = []*RouterGroup{engine.RouterGroup}
 	return engine
 }
 
@@ -34,7 +41,7 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 		parent: group,			// 父组是之前的group
 		engine: engine,
 	}
-	engine.group = append(engine.group, newGroup)	// 将新的组加入到组集合中
+	engine.groups = append(engine.groups, newGroup)	// 将新的组加入到组集合中
 	return newGroup
 }
 
@@ -59,7 +66,16 @@ func (engine *Engine) RUN(addr string) (err error){
 	return http.ListenAndServe(addr, engine)
 }
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request){
+	// 通过前缀来判断是否属于某个组当中
+	// 没有写组拼接的代码
+	var middlewares []HandlerFunc
+	for _, group := range engine.groups {
+		if strings.HasPrefix(req.URL.Path, group.prefix){
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	c := newContext(w, req)
+	c.handlers = middlewares
 	engine.router.handle(c)
 }
 

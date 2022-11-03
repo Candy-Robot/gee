@@ -84,13 +84,11 @@ func (r *router) handle(c *Context){
 		// 如果是c.path那么这时候找到的就是/hello/tyc
 		// 如果是n.pattern 那么这时候找到的就是/hello/
 		key := c.Method +"-" + n.pattern
-		r.handlers[key](c)
+		c.handlers = append(c.handlers, r.handlers[key])
 	}else{
-		c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		c.handlers = append(c.handlers, func(c *Context){
+			c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		})
 	}
-	//if handler, ok := r.handlers[key]; ok {
-	//	handler(c.Writer, c.Req)
-	//}else {
-	//	c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
-	//}
+	c.Next()
 }

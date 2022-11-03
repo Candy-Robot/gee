@@ -12,11 +12,15 @@ type Context struct {
 	// 原始的需求
 	Writer 	http.ResponseWriter
 	Req 	*http.Request
+	// request 的参数
 	Path	string
 	Method	string
+	Params map[string]string 	// 查找一部分的路由
+	// 状态码
 	StatusCode	int
-	// 查找一部分的路由
-	Params map[string]string
+	// middleware
+	handlers []HandlerFunc
+	index int	// 当前执行到第几个中间件
 }
 
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
@@ -25,8 +29,20 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 		Req: req,
 		Path: req.URL.Path,
 		Method: req.Method,
+		index: -1,
 	}
 }
+// 中间件到next函数 执行下一个中间件
+// 中间件使用了next先执行后面的handle的时候，采用的就是循环外的++
+// 如果没用next的话。就是用的循环内的++
+func (c *Context) Next(){
+	c.index++
+	s := len(c.handlers)
+	for ; c.index < s; c.index++ {
+		c.handlers[c.index](c)
+	}
+}
+
 // 可以获取？之后的参数
 func (c *Context) PostForm(key string) string{
 	return c.Req.FormValue(key)
